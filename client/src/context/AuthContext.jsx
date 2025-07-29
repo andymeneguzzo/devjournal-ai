@@ -55,4 +55,5 @@ export const AuthProvider = ({ children }) => {
     )
 }
 
-export const useAuth = () => useContext(AuthContext)
+// will ignore the issue for the moment...
+export const useAuth = () => useContext(AuthContext);
