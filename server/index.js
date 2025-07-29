@@ -1,0 +1,1 @@
+// For simplicity for this first stage of development, I'm using localstorage for data persistence, hence this file will be empty
