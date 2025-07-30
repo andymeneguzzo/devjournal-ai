@@ -1,7 +1,7 @@
 // Login page
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -19,14 +19,35 @@ export default function Login() {
     }
 
     return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-4">Login</h2>
-        <input type="email" className="w-full mb-4 p-2 border rounded" placeholder="Email"
-          value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" className="w-full mb-4 p-2 border rounded" placeholder="Password"
-          value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Log In</button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
+      <form onSubmit={handleSubmit} className="container-card w-full max-w-md">
+        <h2 className="text-3xl font-bold mb-6 text-center text-blue-600">Accedi al tuo account</h2>
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="mb-4"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="mb-6"
+        />
+
+        <button className="w-full hover:bg-blue-700">Login</button>
+
+        <p className="text-sm text-gray-500 text-center mt-4">
+          Non hai un account?{' '}
+          <Link to="/register" className="text-blue-500 hover:underline">
+            Registrati qui
+          </Link>
+        </p>
       </form>
     </div>
   )
