@@ -10,9 +10,9 @@ import {
   useAuth
 } from './context/AuthContext'
 
-// import Home from './pages/Home' obscuring because still not developed
+import Home from './pages/Home'
 import Login from './pages/Login'
-// import Register from './pages/Register' obscuring because still not developed
+import Register from './pages/Register'
 import Journal from './pages/Journal'
 
 function ProtectedRoute({ children }) {
