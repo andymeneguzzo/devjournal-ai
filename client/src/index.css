@@ -2,71 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ====== GLOBAL STYLING ===== */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --color-primary: #2563eb;
+  --color-primary: #4b5563;
+  --color-bg: #f8fafc;
+  --color-text: #1f2937;
+  --font-main: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+} 
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
+html, body {
+  @apply bg-[var(--color-bg)] text-[var(--color-text)] font-sans;
+  font-family: var(--font-main);
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Links */
+a {
+  @apply text-[var(--color-primary)] hover:underline transition-colors duration-200;
 }
 
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold text-gray-800;
+}
+
+/* Buttons */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+  background-color: var(--color-primary);
+  color: white;
 }
 button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  background-color: #1d4ed8;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Inputs */
+input {
+  @apply border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-400 focus:outline-none;
+}
+
+/* Containers (reusable as "card") */
+.container-card {
+  @apply bg-white p-6 rounded-lg shadow-md;
 }
