@@ -10,10 +10,15 @@ import {
   useAuth
 } from './context/AuthContext'
 
+// pages
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Journal from './pages/Journal'
+
+// components
+import Navbar from './components/Navbar'
+
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth()
@@ -24,12 +29,15 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
-        </Routes>
+        <Navbar />
+        <div className="pt-16"> {/* padding per non coprire il contenuto */}
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </AuthProvider>
   )
