@@ -1,9 +1,9 @@
 // Handle CRUD operations on entries
 
 import express from "express";
-import { readJSON, writeJSON } from "../utils/fileHandler";
+import { readJSON, writeJSON } from "../utils/fileHandler.js";
 import path from "path";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 const entriesFile = path.resolve("server/data/entries.json");
