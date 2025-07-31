@@ -57,7 +57,7 @@ export default function Register() {
         <button className="w-full hover:bg-blue-700">Register</button>
 
         <p className="text-sm text-gray-500 text-center mt-4">
-          ALready have an account?{' '}
+          Already have an account?{' '}
           <Link to="/login" className="text-blue-500 hover:underline">
             Login here
           </Link>
