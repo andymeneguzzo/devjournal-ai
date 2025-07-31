@@ -5,6 +5,7 @@ import {
     useEffect,
     useState
 } from "react"
+import { getEntries, addEntry } from "../../services/api"
 
 export default function Journal() {
     const { user } = useAuth()
@@ -12,27 +13,25 @@ export default function Journal() {
     const [text, setText] = useState("")
 
     useEffect(() => {
-        if(!user) return 
-        const stored = JSON.parse(localStorage.getItem(`entries_${user.email}`)) || []
-        setEntries(stored)
-    }, [user])
+      if(!user) return;
+      (async () => {
+        const data = await getEntries(user.token);
+        setEntries(data);
+      })();
+    }, [user]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         // Avoid empty entries
         if(!text.trim()) return;
 
-        const newEntry = { text, date: new Date().toISOString() }
-
-        // the last published first
-        const updated = [newEntry, ...entries]
-        localStorage.setItem(`entries_${user.email}`, JSON.stringify(updated))
-        setEntries(updated)
-        setText("")
+        const newEntry = await addEntry(user.token, text);
+        setEntries([newEntry, ...entries]);
+        setText("");
     }
 
-    if (!user) return <div className="text-center p-10 text-red-500 font-bold">Unauthorized access</div>
+    if (!user) return <div className="text-center p-10 text-red-500 font-bold">Unauthorized access</div>;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -59,9 +58,9 @@ export default function Journal() {
           {entries.length === 0 && (
             <p className="text-gray-500 text-center">No entries yet. Start writing your first one!</p>
           )}
-          {entries.map((e, idx) => (
+          {entries.map((e) => (
             <div
-              key={idx}
+              key={e.id}
               className="bg-gray-50 p-4 rounded shadow hover:shadow-md transition-shadow"
             >
               <p className="mb-2">{e.text}</p>
@@ -73,5 +72,5 @@ export default function Journal() {
         </div>
       </div>
     </div>
-  )
+  );
 }

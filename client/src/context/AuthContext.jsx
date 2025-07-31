@@ -5,55 +5,66 @@ import {
     useContext,
     useEffect,
     useState
-} from 'react'
+} from 'react';
+import { loginUser, registerUser } from '../../services/api';
 
-const AuthContext = createContext()
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null)
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        const saved = JSON.parse(localStorage.getItem("loggedUser"))
-        if(saved) setUser(saved)
-    }, [])
+        const saved = JSON.parse(localStorage.getItem("loggedUser"));
+        if(saved && saved.token) setUser(saved);
+    }, []);
 
-    const login = (email, password) => {
-        const users = JSON.parse(localStorage.getItem("users")) || []
-        const existingUser = users.find(user => user.email === email && user.password === password)
+    // Login via backend
+    const login = async (email, password) => {
+        try {
+            const res = await loginUser(email, password);
 
-        if(existingUser) {
-            setUser(existingUser)
-            localStorage.setItem("loggedUser", JSON.stringify(existingUser))
-            return true
+            if(res.token) {
+                const userData = {email, token: res.token};
+                setUser(userData);
+                localStorage.setItem("loggedUser", JSON.stringify(userData));
+                return true;
+            } else {
+                return false;
+            }
+        } catch(error) {
+            console.error("Login error: ", error);
+            return false;
         }
-        return false
-    }
+    };
 
-    const register = (email, password) => {
-        const users = JSON.parse(localStorage.getItem("users")) || []
+    // Register via backend
+    const register = async (email, password) => {
+        try {
+            const res = await registerUser(email, password);
 
-        if(users.find(user => user.email === email)) return false
+            // If registration success, then auto login
+            if(res.message === "Register successful") {
+                return await login(email, password);
+            }
+            return false;
+        } catch(error) {
+            console.error("Registration error: ", error);
+            return false;
+        }
+    };
 
-        const newUser = { email, password }
-        users.push(newUser)
-
-        localStorage.setItem("users", JSON.stringify(users))
-        setUser(newUser)
-        localStorage.setItem("loggedUser", JSON.stringify(newUser))
-        return true
-    }
-
+    // Logout
     const logout = () => {
-        setUser(null)
-        localStorage.removeItem("loggedUser")
+        setUser(null);
+        localStorage.removeItem("loggedUser");
     }
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout }}>
             {children}
         </AuthContext.Provider>
-    )
+    );
 }
 
 // will ignore the issue for the moment...
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => useContext(AuthContext);
