@@ -4,9 +4,14 @@ import express from "express";
 import { readJSON, writeJSON } from "../utils/fileHandler.js";
 import path from "path";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
-const entriesFile = path.resolve("server/data/entries.json");
+
+// Fix file path resolution for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const entriesFile = path.join(__dirname, "../data/entries.json");
 
 
 /**
@@ -50,7 +55,7 @@ router.post("/", authMiddleware, async (req, res) => {
         };
 
         allEntries.push(newEntry);
-        await writeJSON(entriesFile);
+        await writeJSON(entriesFile, allEntries); // Fixed: added missing parameter
 
         res.status(201).json(newEntry);
     } catch(error) {
@@ -67,14 +72,14 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         const entryId = parseInt(req.params.id);
         const allEntries = await readJSON(entriesFile);
 
-        const index = allEntries.findIndex(entry => entry.id === entryId && entry.usedId === req.user.id);
+        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.user.id); // Fixed: usedId → userId
 
         if(index === -1) {
             return res.status(404).json({message: "Entry not found or unathorized"});
         }
 
         allEntries.splice(index, 1);
-        await writeJSON(entriesFile, allEntries)
+        await writeJSON(entriesFile, allEntries); // Fixed: added semicolon
 
         res.json({message: "Entry removed successfully"});
     } catch(error) {

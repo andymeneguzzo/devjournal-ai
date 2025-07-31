@@ -5,11 +5,14 @@ import { readJSON, writeJSON } from "../utils/fileHandler.js";
 import path from "path";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; 
+import { fileURLToPath } from "url";
 
 const router = express.Router();
 
-// File path of users.json
-const usersFile = path.resolve("server/data/users.json");
+// Fix file path resolution for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const usersFile = path.join(__dirname, "../data/users.json");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

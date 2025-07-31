@@ -1,6 +1,6 @@
 // service to centralize the api calls
 
-const API_URL = "http://localhost:5000";
+const API_URL = "http://localhost:5001";
 
 export async function registerUser(email, password) {
     const res = await fetch(`${API_URL}/auth/register`, {
@@ -15,7 +15,7 @@ export async function registerUser(email, password) {
 export async function loginUser(email, password) {
     const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: {"COntent-Type": "application/json"},
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({email, password}),
     });
 

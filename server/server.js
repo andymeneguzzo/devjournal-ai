@@ -2,17 +2,23 @@
 
 import express from "express";
 import cors from "cors";
-import fs from "fs";
-import path from "path";
+import dotenv from "dotenv";
 
 import authRoutes from "./routes/authRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
 // Routes
