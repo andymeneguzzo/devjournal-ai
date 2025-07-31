@@ -21,7 +21,7 @@ export default function Login() {
     return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
       <form onSubmit={handleSubmit} className="container-card w-full max-w-md">
-        <h2 className="text-3xl font-bold mb-6 text-center text-blue-600">Accedi al tuo account</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center text-blue-600">Login to your account</h2>
 
         <input
           type="email"
@@ -43,9 +43,9 @@ export default function Login() {
         <button className="w-full hover:bg-blue-700">Login</button>
 
         <p className="text-sm text-gray-500 text-center mt-4">
-          Non hai un account?{' '}
+          Don't have an account?{' '}
           <Link to="/register" className="text-blue-500 hover:underline">
-            Registrati qui
+            Registers here
           </Link>
         </p>
       </form>

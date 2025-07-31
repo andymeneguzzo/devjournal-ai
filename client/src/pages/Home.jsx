@@ -5,10 +5,10 @@ export default function Home() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
-      <div className="container-card text-center w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-4 text-blue-600">📝 AI Journal</h1>
-        <p className="text-gray-600 mb-6">
+    <div className="flex items-center justify-center min-h-screen px-4 bg-[var(--color-bg)]">
+      <div className="text-center w-full max-w-md">
+        <h1 className="text-4xl font-bold mb-3">AI Journal</h1>
+        <p className="text-lg mb-8">
           Write your thoughts and let AI help you reflect, grow, and improve every day.
         </p>
 
@@ -19,28 +19,28 @@ export default function Home() {
             </p>
             <Link
               to="/journal"
-              className="block w-full bg-green-500 text-white px-4 py-2 rounded mb-3 hover:bg-green-600 transition"
+              className="btn btn-login block w-full mb-3 text-center"
             >
               Go to your Journal
             </Link>
             <button
               onClick={logout}
-              className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+              className="btn btn-register w-full"
             >
               Logout
             </button>
           </div>
         ) : (
-          <div>
+          <div className="flex justify-center gap-4">
             <Link
               to="/login"
-              className="block w-full bg-blue-500 text-white px-4 py-2 rounded mb-3 hover:bg-blue-600 transition"
+              className="btn btn-login"
             >
               Login
             </Link>
             <Link
               to="/register"
-              className="block w-full bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+              className="btn btn-register"
             >
               Register
             </Link>
