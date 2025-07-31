@@ -24,7 +24,9 @@ export default function Journal() {
         if(!text.trim()) return;
 
         const newEntry = { text, date: new Date().toISOString() }
-        const updated = [...entries, newEntry]
+
+        // the last published first
+        const updated = [newEntry, ...entries]
         localStorage.setItem(`entries_${user.email}`, JSON.stringify(updated))
         setEntries(updated)
         setText("")
