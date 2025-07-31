@@ -5,8 +5,8 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 
-import authRoutes from "./routes/authRoutes";
-import journalRoutes from "./routes/journalRoutes";
+import authRoutes from "./routes/authRoutes.js";
+import journalRoutes from "./routes/journalRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;

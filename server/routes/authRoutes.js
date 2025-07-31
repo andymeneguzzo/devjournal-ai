@@ -1,7 +1,7 @@
 // Registration and login handle
 
 import express from "express";
-import { readJSON, writeJSON } from "../utils/fileHandler";
+import { readJSON, writeJSON } from "../utils/fileHandler.js";
 import path from "path";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; 
