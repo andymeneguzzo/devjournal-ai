@@ -3,5 +3,10 @@
     "id": 1753998568277,
     "email": "test@test.com",
     "password": "$2b$10$ooIp/q563DbdZ8SQ5NhM0.23G7dG4/DnGeJxy7jt5/AqEN4.O8cYO"
+  },
+  {
+    "id": 1753999522723,
+    "email": "test@example.com",
+    "password": "$2b$10$KVDad9uV7qxpJNMIjwQdquqhoG6evBy8tK42dwCQKqbRZhGNLqhoe"
   }
 ]

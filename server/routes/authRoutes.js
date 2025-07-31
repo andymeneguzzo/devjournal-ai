@@ -6,7 +6,9 @@ import path from "path";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; 
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
+dotenv.config();
 const router = express.Router();
 
 // Fix file path resolution for ES modules
@@ -15,6 +17,11 @@ const __dirname = path.dirname(__filename);
 const usersFile = path.join(__dirname, "../data/users.json");
 
 const JWT_SECRET = process.env.JWT_SECRET;
+// Add debugging to verify JWT_SECRET is loaded
+if (!JWT_SECRET) {
+    console.error("❌ JWT_SECRET is not defined! Check your .env file.");
+    process.exit(1);
+}
 
 /**
  * @route POST /auth/register
