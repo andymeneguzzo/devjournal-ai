@@ -20,6 +20,9 @@ export default function Journal() {
     const handleSubmit = (e) => {
         e.preventDefault()
 
+        // Avoid empty entries
+        if(!text.trim()) return;
+
         const newEntry = { text, date: new Date().toISOString() }
         const updated = [...entries, newEntry]
         localStorage.setItem(`entries_${user.email}`, JSON.stringify(updated))
@@ -43,7 +46,8 @@ export default function Journal() {
             onChange={(e) => setText(e.target.value)}
           />
           <button
-            className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+            className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={!text.trim()}
           >
             Save Entry
           </button>
