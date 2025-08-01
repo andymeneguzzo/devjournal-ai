@@ -41,8 +41,8 @@ router.post("/", authMiddleware, async (req, res) => {
     try {
         const { text } = req.body;
 
-        // More robust validation
-        if (typeof text !== 'string' || text.trim().length === 0) {
+        // Simple validation - back to original logic
+        if(!text || !text.trim()) {
             return res.status(400).json({message: "Entry cannot be empty"});
         }
 
@@ -51,7 +51,7 @@ router.post("/", authMiddleware, async (req, res) => {
         const newEntry = {
             id: Date.now(),
             userId: req.userId,
-            text: text.trim(), // Ensure clean text
+            text,
             date: new Date().toISOString()
         };
 
@@ -72,12 +72,8 @@ router.post("/", authMiddleware, async (req, res) => {
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const entryId = parseInt(req.params.id);
-        
-        if (isNaN(entryId)) {
-            return res.status(400).json({message: "Invalid entry ID"});
-        }
-
         const allEntries = await readJSON(entriesFile);
+
         const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.userId);
 
         if(index === -1) {
