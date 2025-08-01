@@ -32,8 +32,20 @@ router.post("/register", async (req, res) => {
     try {
         const {email, password} = req.body;
 
+        // Basic validation first
         if(!email || !password) {
             return res.status(400).json({message: "Email and password required"});
+        }
+
+        // Add email format validation - ONLY if email exists
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (typeof email === 'string' && !emailRegex.test(email)) {
+            return res.status(400).json({message: "Invalid email format"});
+        }
+
+        // Add password strength validation - ONLY if password exists
+        if (typeof password === 'string' && password.length < 6) {
+            return res.status(400).json({message: "Password must be at least 6 characters"});
         }
 
         const users = await readJSON(usersFile);
@@ -59,6 +71,7 @@ router.post("/register", async (req, res) => {
 
         res.status(201).json({message: "Registration successful"});
     } catch(error) {
+        console.error("Registration error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });
@@ -72,8 +85,9 @@ router.post("/login", async (req,res) => {
     try {
         const {email, password} = req.body;
 
+        // Basic validation only - NO email format or password strength checks needed for login
         if (!email || !password) {
-            return res.status(400).json({ message: "Email e password richieste" });
+            return res.status(400).json({ message: "Email and password required" }); // Fixed: English message
         }
         
         const users = await readJSON(usersFile);
@@ -95,6 +109,7 @@ router.post("/login", async (req,res) => {
 
         res.json({message: "Login successful", token});
     } catch(error) {
+        console.error("Login error:", error); // Add logging for debugging
         res.status(500).json({message: "Server error", error: error.message});
     }
 });

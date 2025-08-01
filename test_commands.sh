@@ -8,6 +8,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # API base URL
@@ -22,7 +24,20 @@ echo -e "${BLUE}🚀 Starting DevJournal AI Backend API Tests${NC}"
 echo "================================================"
 echo
 
-# Function to print test results
+# Add cleanup function
+cleanup_test_data() {
+    echo -e "${YELLOW}🧹 Cleaning up test data before starting...${NC}"
+    
+    # Reset users.json to empty array
+    echo "[]" > server/data/users.json
+    # Reset entries.json to empty array  
+    echo "[]" > server/data/entries.json
+    
+    echo -e "${GREEN}✅ Test data cleaned${NC}"
+    echo
+}
+
+# Enhanced function to print test results with detailed debugging
 print_result() {
     if [ $1 -eq 0 ]; then
         echo -e "${GREEN}✅ PASS: $2${NC}"
@@ -30,6 +45,65 @@ print_result() {
         echo -e "${RED}❌ FAIL: $2${NC}"
     fi
     echo
+}
+
+# Enhanced function to make API calls with detailed debugging
+make_api_call() {
+    local method="$1"
+    local endpoint="$2"
+    local data="$3"
+    local auth_header="$4"
+    local test_name="$5"
+    
+    # Send debug output to stderr (>&2) so it's displayed but not captured
+    echo -e "${CYAN}🔍 DEBUG: Making $method request to $endpoint${NC}" >&2
+    echo -e "${PURPLE}📤 Request data: $data${NC}" >&2
+    
+    # Build curl command with verbose output
+    local curl_cmd="curl -s -w \"HTTP_STATUS:%{http_code}|TIME:%{time_total}|SIZE:%{size_download}\" -X $method \"$API_URL$endpoint\""
+    
+    if [ ! -z "$data" ]; then
+        curl_cmd="$curl_cmd -H \"Content-Type: application/json\" -d '$data'"
+    fi
+    
+    if [ ! -z "$auth_header" ]; then
+        curl_cmd="$curl_cmd -H \"Authorization: Bearer $auth_header\""
+    fi
+    
+    echo -e "${PURPLE}🔧 Command: $curl_cmd${NC}" >&2
+    
+    # Execute the request and capture response
+    local response=$(eval $curl_cmd)
+    
+    # Extract HTTP status and timing info
+    local http_info=$(echo "$response" | grep -o "HTTP_STATUS:[0-9]*|TIME:[0-9.]*|SIZE:[0-9]*")
+    local http_status=$(echo "$http_info" | grep -o "HTTP_STATUS:[0-9]*" | cut -d':' -f2)
+    local time_total=$(echo "$http_info" | grep -o "TIME:[0-9.]*" | cut -d':' -f2)
+    local size_download=$(echo "$http_info" | grep -o "SIZE:[0-9]*" | cut -d':' -f2)
+    
+    # Remove the debug info from response
+    local clean_response=$(echo "$response" | sed 's/HTTP_STATUS:[0-9]*|TIME:[0-9.]*|SIZE:[0-9]*$//')
+    
+    echo -e "${PURPLE}📊 Response Status: $http_status | Time: ${time_total}s | Size: ${size_download} bytes${NC}" >&2
+    echo -e "${PURPLE}📥 Response body: $clean_response${NC}" >&2
+    
+    # Check for empty response
+    if [ -z "$clean_response" ]; then
+        echo -e "${RED}⚠️  EMPTY RESPONSE detected! This indicates a server crash or connection issue.${NC}" >&2
+        echo -e "${RED}🔍 Check if server is running on $API_URL${NC}" >&2
+        echo -e "${RED}🔍 Check server logs for error messages${NC}" >&2
+    fi
+    
+    # Check for connection errors
+    if [ "$http_status" = "000" ]; then
+        echo -e "${RED}⚠️  CONNECTION ERROR! Server might not be running or crashed.${NC}" >&2
+        echo -e "${RED}🔍 Please check if server is running on $API_URL${NC}" >&2
+    fi
+    
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+    
+    # Return ONLY the clean response for further processing (to stdout)
+    echo "$clean_response"
 }
 
 # Function to extract token from JSON response
@@ -42,14 +116,15 @@ extract_message() {
     echo "$1" | grep -o '"message":"[^"]*"' | cut -d'"' -f4
 }
 
+# Add cleanup call at the beginning
+cleanup_test_data
+
 echo -e "${YELLOW}🧪 Testing Authentication Endpoints${NC}"
 echo "----------------------------------------"
 
 # Test 1: Register new user with valid data
-echo "Test 1: Register new user with valid data"
-response=$(curl -s -X POST "$API_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}")
+echo -e "${BLUE}Test 1: Register new user with valid data${NC}"
+response=$(make_api_call "POST" "/auth/register" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" "" "User Registration")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Registration successful" ]]; then
@@ -59,10 +134,8 @@ else
 fi
 
 # Test 2: Try to register same user again (should fail)
-echo "Test 2: Try to register duplicate user"
-response=$(curl -s -X POST "$API_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}")
+echo -e "${BLUE}Test 2: Try to register duplicate user${NC}"
+response=$(make_api_call "POST" "/auth/register" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" "" "Duplicate Registration")
 
 message=$(extract_message "$response")
 if [[ "$message" == "User already exists" ]]; then
@@ -72,10 +145,8 @@ else
 fi
 
 # Test 3: Register with missing data
-echo "Test 3: Register with missing email"
-response=$(curl -s -X POST "$API_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d "{\"password\":\"$TEST_PASSWORD\"}")
+echo -e "${BLUE}Test 3: Register with missing email${NC}"
+response=$(make_api_call "POST" "/auth/register" "{\"password\":\"$TEST_PASSWORD\"}" "" "Missing Email Validation")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Email and password required" ]]; then
@@ -85,10 +156,8 @@ else
 fi
 
 # Test 4: Login with valid credentials
-echo "Test 4: Login with valid credentials"
-response=$(curl -s -X POST "$API_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}")
+echo -e "${BLUE}Test 4: Login with valid credentials${NC}"
+response=$(make_api_call "POST" "/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" "" "User Login")
 
 message=$(extract_message "$response")
 TOKEN=$(extract_token "$response")
@@ -100,14 +169,14 @@ if [[ "$message" == "Login successful" ]] && [[ -n "$TOKEN" ]]; then
 else
     print_result 1 "User login - Response: $response"
     echo -e "${RED}⚠️  Cannot continue with journal tests without token${NC}"
+    echo -e "${RED}🔍 Debug: Message='$message', Token='$TOKEN'${NC}"
+    echo -e "${RED}🔍 Check server console for detailed error logs${NC}"
     exit 1
 fi
 
 # Test 5: Login with wrong password
-echo "Test 5: Login with wrong password"
-response=$(curl -s -X POST "$API_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"wrongpassword\"}")
+echo -e "${BLUE}Test 5: Login with wrong password${NC}"
+response=$(make_api_call "POST" "/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"wrongpassword\"}" "" "Wrong Password Test")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Wrong password" ]]; then
@@ -117,10 +186,8 @@ else
 fi
 
 # Test 6: Login with non-existent user
-echo "Test 6: Login with non-existent user"
-response=$(curl -s -X POST "$API_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"nonexistent@example.com\",\"password\":\"$TEST_PASSWORD\"}")
+echo -e "${BLUE}Test 6: Login with non-existent user${NC}"
+response=$(make_api_call "POST" "/auth/login" "{\"email\":\"nonexistent@example.com\",\"password\":\"$TEST_PASSWORD\"}" "" "Non-existent User Test")
 
 message=$(extract_message "$response")
 if [[ "$message" == "User doesn't exist" ]]; then
@@ -133,8 +200,8 @@ echo -e "${YELLOW}📝 Testing Journal CRUD Operations${NC}"
 echo "----------------------------------------"
 
 # Test 7: Get entries without token (should fail)
-echo "Test 7: Get entries without authentication"
-response=$(curl -s -X GET "$API_URL/journal")
+echo -e "${BLUE}Test 7: Get entries without authentication${NC}"
+response=$(make_api_call "GET" "/journal" "" "" "Unauthorized Access Test")
 http_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$API_URL/journal")
 
 if [[ "$http_code" == "401" ]]; then
@@ -144,9 +211,8 @@ else
 fi
 
 # Test 8: Get entries with valid token (should return empty array initially)
-echo "Test 8: Get entries with valid token"
-response=$(curl -s -X GET "$API_URL/journal" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 8: Get entries with valid token${NC}"
+response=$(make_api_call "GET" "/journal" "" "$TOKEN" "Get Empty Entries")
 
 if [[ "$response" == "[]" ]]; then
     print_result 0 "Get empty entries list"
@@ -155,12 +221,9 @@ else
 fi
 
 # Test 9: Create first journal entry
-echo "Test 9: Create first journal entry"
+echo -e "${BLUE}Test 9: Create first journal entry${NC}"
 ENTRY_TEXT1="This is my first test journal entry. Testing the API!"
-response=$(curl -s -X POST "$API_URL/journal" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"text\":\"$ENTRY_TEXT1\"}")
+response=$(make_api_call "POST" "/journal" "{\"text\":\"$ENTRY_TEXT1\"}" "$TOKEN" "Create First Entry")
 
 entry_text=$(echo "$response" | grep -o '"text":"[^"]*"' | cut -d'"' -f4)
 ENTRY_ID1=$(echo "$response" | grep -o '"id":[0-9]*' | cut -d':' -f2)
@@ -174,12 +237,9 @@ else
 fi
 
 # Test 10: Create second journal entry
-echo "Test 10: Create second journal entry"
+echo -e "${BLUE}Test 10: Create second journal entry${NC}"
 ENTRY_TEXT2="This is my second journal entry. The API is working great!"
-response=$(curl -s -X POST "$API_URL/journal" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"text\":\"$ENTRY_TEXT2\"}")
+response=$(make_api_call "POST" "/journal" "{\"text\":\"$ENTRY_TEXT2\"}" "$TOKEN" "Create Second Entry")
 
 entry_text=$(echo "$response" | grep -o '"text":"[^"]*"' | cut -d'"' -f4)
 ENTRY_ID2=$(echo "$response" | grep -o '"id":[0-9]*' | cut -d':' -f2)
@@ -193,11 +253,8 @@ else
 fi
 
 # Test 11: Try to create entry with empty text
-echo "Test 11: Create entry with empty text"
-response=$(curl -s -X POST "$API_URL/journal" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"text\":\"\"}")
+echo -e "${BLUE}Test 11: Create entry with empty text${NC}"
+response=$(make_api_call "POST" "/journal" "{\"text\":\"\"}" "$TOKEN" "Empty Entry Test")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Entry cannot be empty" ]]; then
@@ -207,9 +264,8 @@ else
 fi
 
 # Test 12: Get all entries (should return 2 entries)
-echo "Test 12: Get all entries"
-response=$(curl -s -X GET "$API_URL/journal" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 12: Get all entries${NC}"
+response=$(make_api_call "GET" "/journal" "" "$TOKEN" "Get All Entries")
 
 entry_count=$(echo "$response" | grep -o '"id":' | wc -l | tr -d ' ')
 if [[ "$entry_count" == "2" ]]; then
@@ -219,9 +275,8 @@ else
 fi
 
 # Test 13: Delete first entry
-echo "Test 13: Delete first entry"
-response=$(curl -s -X DELETE "$API_URL/journal/$ENTRY_ID1" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 13: Delete first entry${NC}"
+response=$(make_api_call "DELETE" "/journal/$ENTRY_ID1" "" "$TOKEN" "Delete First Entry")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Entry removed successfully" ]]; then
@@ -231,9 +286,8 @@ else
 fi
 
 # Test 14: Verify entry was deleted (should return 1 entry)
-echo "Test 14: Verify entry deletion"
-response=$(curl -s -X GET "$API_URL/journal" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 14: Verify entry deletion${NC}"
+response=$(make_api_call "GET" "/journal" "" "$TOKEN" "Verify Entry Deletion")
 
 entry_count=$(echo "$response" | grep -o '"id":' | wc -l | tr -d ' ')
 if [[ "$entry_count" == "1" ]]; then
@@ -243,9 +297,8 @@ else
 fi
 
 # Test 15: Try to delete non-existent entry
-echo "Test 15: Try to delete non-existent entry"
-response=$(curl -s -X DELETE "$API_URL/journal/999999" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 15: Try to delete non-existent entry${NC}"
+response=$(make_api_call "DELETE" "/journal/999999" "" "$TOKEN" "Non-existent Entry Deletion Test")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Entry not found or unathorized" ]]; then
@@ -255,7 +308,7 @@ else
 fi
 
 # Test 16: Try to delete entry without token
-echo "Test 16: Try to delete entry without authentication"
+echo -e "${BLUE}Test 16: Try to delete entry without authentication${NC}"
 http_code=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$API_URL/journal/$ENTRY_ID2")
 
 if [[ "$http_code" == "401" ]]; then
@@ -268,9 +321,8 @@ echo -e "${YELLOW}🧹 Cleanup Tests${NC}"
 echo "----------------------------------------"
 
 # Test 17: Clean up remaining entries
-echo "Test 17: Clean up remaining entries"
-response=$(curl -s -X DELETE "$API_URL/journal/$ENTRY_ID2" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 17: Clean up remaining entries${NC}"
+response=$(make_api_call "DELETE" "/journal/$ENTRY_ID2" "" "$TOKEN" "Cleanup: Delete Remaining Entry")
 
 message=$(extract_message "$response")
 if [[ "$message" == "Entry removed successfully" ]]; then
@@ -280,9 +332,8 @@ else
 fi
 
 # Test 18: Verify all entries are deleted
-echo "Test 18: Verify all entries deleted"
-response=$(curl -s -X GET "$API_URL/journal" \
-  -H "Authorization: Bearer $TOKEN")
+echo -e "${BLUE}Test 18: Verify all entries deleted${NC}"
+response=$(make_api_call "GET" "/journal" "" "$TOKEN" "Verify All Entries Cleaned Up")
 
 if [[ "$response" == "[]" ]]; then
     print_result 0 "All entries cleaned up"
