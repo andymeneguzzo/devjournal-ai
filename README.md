@@ -1,7 +1,13 @@
 # DevJournal AI - AI powered Journal for Devs
 
 ## Tech Stack:
-- Backend: Express
+#### Backend: 
+- Runtime: Node.js with ES modules
+- Framework: Express.js
+- Authentication: JWT + bcrypt
+- Storage: JSON file
+- Environment: dotenv
+
 - Frontend: React + Vite + Tailwind CSS
 - Database: JSON
 - AI Integration: Gemini 2.0 (to implement...)
