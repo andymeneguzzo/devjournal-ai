@@ -25,33 +25,39 @@ if (!JWT_SECRET) {
 
 /**
  * @route POST /auth/register
- * @desc REgister new users
+ * @desc Register new users
  * @body {email, password}
  */
 router.post("/register", async (req, res) => {
     try {
+        // Ensure req.body exists and is an object
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({message: "Invalid request body"});
+        }
+
         const {email, password} = req.body;
 
-        // Basic validation first
-        if(!email || !password) {
+        // Basic validation first - check for missing/falsy values
+        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
             return res.status(400).json({message: "Email and password required"});
         }
 
-        // Add email format validation - ONLY if email exists
+        // Trim and validate email format
+        const trimmedEmail = email.trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (typeof email === 'string' && !emailRegex.test(email)) {
+        if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
             return res.status(400).json({message: "Invalid email format"});
         }
 
-        // Add password strength validation - ONLY if password exists
-        if (typeof password === 'string' && password.length < 6) {
+        // Password strength validation
+        if (password.length < 6) {
             return res.status(400).json({message: "Password must be at least 6 characters"});
         }
 
         const users = await readJSON(usersFile);
 
         // Check if user already exists
-        const existing = users.find((u) => u.email === email);
+        const existing = users.find((u) => u.email === trimmedEmail);
         if(existing) {
             return res.status(400).json({message: "User already exists"});
         }
@@ -62,7 +68,7 @@ router.post("/register", async (req, res) => {
         // create new user
         const newUser = {
             id: Date.now(),
-            email,
+            email: trimmedEmail,
             password: hashed,
         };
 
@@ -83,16 +89,22 @@ router.post("/register", async (req, res) => {
  */
 router.post("/login", async (req,res) => {
     try {
+        // Ensure req.body exists and is an object
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({message: "Invalid request body"});
+        }
+
         const {email, password} = req.body;
 
-        // Basic validation only - NO email format or password strength checks needed for login
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password required" }); // Fixed: English message
+        // Basic validation - check for missing/falsy values
+        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ message: "Email and password required" });
         }
         
         const users = await readJSON(usersFile);
+        const trimmedEmail = email.trim();
 
-        const user = users.find((u) => u.email === email);
+        const user = users.find((u) => u.email === trimmedEmail);
         if(!user) {
             return res.status(400).json({message: "User doesn't exist"});
         }
@@ -109,7 +121,7 @@ router.post("/login", async (req,res) => {
 
         res.json({message: "Login successful", token});
     } catch(error) {
-        console.error("Login error:", error); // Add logging for debugging
+        console.error("Login error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });

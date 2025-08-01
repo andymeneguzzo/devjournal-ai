@@ -13,18 +13,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const entriesFile = path.join(__dirname, "../data/entries.json");
 
-/**
- * @route GET /journal
- * @desc Get all entries of logged user
- */
+// GET /journal
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const allEntries = await readJSON(entriesFile);
         const userEntries = allEntries.filter(entry => entry.userId === req.userId);
-
-        // Order from most recent
         userEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
-
         res.json(userEntries);
     } catch(error) {
         console.error("GET /journal error:", error);
@@ -32,17 +26,16 @@ router.get("/", authMiddleware, async (req, res) => {
     }
 });
 
-/**
- * @route POST /journal
- * @desc Add a new entry
- * @body {text}
- */
+// POST /journal
 router.post("/", authMiddleware, async (req, res) => {
     try {
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({message: "Invalid request body"});
+        }
+
         const { text } = req.body;
 
-        // Simple validation - back to original logic
-        if(!text || !text.trim()) {
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
             return res.status(400).json({message: "Entry cannot be empty"});
         }
 
@@ -51,13 +44,12 @@ router.post("/", authMiddleware, async (req, res) => {
         const newEntry = {
             id: Date.now(),
             userId: req.userId,
-            text,
+            text: text.trim(),
             date: new Date().toISOString()
         };
 
         allEntries.push(newEntry);
         await writeJSON(entriesFile, allEntries);
-
         res.status(201).json(newEntry);
     } catch(error) {
         console.error("POST /journal error:", error);
@@ -65,15 +57,16 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 });
 
-/**
- * @route DELETE /journal/:id
- * @desc Delete a specific user entry
- */
+// DELETE /journal/:id
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const entryId = parseInt(req.params.id);
-        const allEntries = await readJSON(entriesFile);
+        
+        if (isNaN(entryId)) {
+            return res.status(400).json({message: "Invalid entry ID"});
+        }
 
+        const allEntries = await readJSON(entriesFile);
         const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.userId);
 
         if(index === -1) {
@@ -82,7 +75,6 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         allEntries.splice(index, 1);
         await writeJSON(entriesFile, allEntries);
-
         res.json({message: "Entry removed successfully"});
     } catch(error) {
         console.error("DELETE /journal error:", error);
