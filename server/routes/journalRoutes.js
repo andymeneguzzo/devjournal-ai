@@ -20,13 +20,14 @@ const entriesFile = path.join(__dirname, "../data/entries.json");
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const allEntries = await readJSON(entriesFile);
-        const userEntries = allEntries.filter(entry => entry.userId === req.userId); // Fixed: req.userId instead of req.user.id
+        const userEntries = allEntries.filter(entry => entry.userId === req.userId);
 
         // Order from most recent
         userEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
 
         res.json(userEntries);
     } catch(error) {
+        console.error("GET /journal error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });
@@ -40,7 +41,8 @@ router.post("/", authMiddleware, async (req, res) => {
     try {
         const { text } = req.body;
 
-        if(!text || !text.trim()) {
+        // More robust validation
+        if (typeof text !== 'string' || text.trim().length === 0) {
             return res.status(400).json({message: "Entry cannot be empty"});
         }
 
@@ -48,8 +50,8 @@ router.post("/", authMiddleware, async (req, res) => {
 
         const newEntry = {
             id: Date.now(),
-            userId: req.userId, // Fixed: consistent with GET route
-            text,
+            userId: req.userId,
+            text: text.trim(), // Ensure clean text
             date: new Date().toISOString()
         };
 
@@ -58,6 +60,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
         res.status(201).json(newEntry);
     } catch(error) {
+        console.error("POST /journal error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });
@@ -69,9 +72,13 @@ router.post("/", authMiddleware, async (req, res) => {
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const entryId = parseInt(req.params.id);
-        const allEntries = await readJSON(entriesFile);
+        
+        if (isNaN(entryId)) {
+            return res.status(400).json({message: "Invalid entry ID"});
+        }
 
-        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.userId); // Fixed: consistent userId
+        const allEntries = await readJSON(entriesFile);
+        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.userId);
 
         if(index === -1) {
             return res.status(404).json({message: "Entry not found or unathorized"});
@@ -82,6 +89,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         res.json({message: "Entry removed successfully"});
     } catch(error) {
+        console.error("DELETE /journal error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });
