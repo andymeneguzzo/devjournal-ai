@@ -1,8 +1,14 @@
 [
   {
-    "id": 1754033708856,
-    "userId": 1754033708639,
+    "id": 1754040708549,
+    "userId": 1754040708335,
     "text": "This is my first test journal entry. Testing the API!",
-    "date": "2025-08-01T07:35:08.856Z"
+    "date": "2025-08-01T09:31:48.549Z"
+  },
+  {
+    "id": 1754040708563,
+    "userId": 1754040708335,
+    "text": "This is my second journal entry. The API is working great!",
+    "date": "2025-08-01T09:31:48.563Z"
   }
 ]
