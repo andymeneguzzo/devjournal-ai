@@ -33,10 +33,35 @@ export async function readJSON(filePath) {
  * @returns {Promise<void>}
  */
 export async function writeJSON(filePath, data) {
-    return new Promise((resolve, reject) => {
-        fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8", (err) => {
-            if(err) return reject(err);
-            resolve();
+    return withFileLock(filePath, () => {
+        return new Promise((resolve, reject) => {
+            const jsonData = JSON.stringify(data, null, 2);
+            fs.writeFile(filePath, jsonData, "utf-8", (err) => {
+                if(err) {
+                    console.error("File write error:", err);
+                    return reject(err);
+                }
+                resolve();
+            });
         });
     });
+}
+
+// Add file operation mutex to prevent race conditions
+const fileLocks = new Map();
+
+async function withFileLock(filePath, operation) {
+    if (fileLocks.has(filePath)) {
+        await fileLocks.get(filePath);
+    }
+    
+    const lockPromise = operation();
+    fileLocks.set(filePath, lockPromise);
+    
+    try {
+        const result = await lockPromise;
+        return result;
+    } finally {
+        fileLocks.delete(filePath);
+    }
 }

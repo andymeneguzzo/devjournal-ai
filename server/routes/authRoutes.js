@@ -42,14 +42,18 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({message: "Email and password required"});
         }
 
-        // Trim and validate email format
+        // Trim and validate email format - ONLY if email exists and is string
         const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            return res.status(400).json({message: "Email and password required"});
+        }
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+        if (!emailRegex.test(trimmedEmail)) {
             return res.status(400).json({message: "Invalid email format"});
         }
 
-        // Password strength validation
+        // Password strength validation - ONLY if password exists and is string  
         if (password.length < 6) {
             return res.status(400).json({message: "Password must be at least 6 characters"});
         }

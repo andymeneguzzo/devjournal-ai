@@ -12,14 +12,17 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Add global error handlers to prevent crashes
+// Add comprehensive error handling
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+    console.error('🚨 Unhandled Promise Rejection:', reason);
+    console.error('At promise:', promise);
+    // Don't exit process, just log the error
 });
 
 process.on('uncaughtException', (error) => {
     console.error('🚨 Uncaught Exception:', error);
-    process.exit(1);
+    // For uncaught exceptions, we should exit gracefully
+    setTimeout(() => process.exit(1), 1000);
 });
 
 // Middleware

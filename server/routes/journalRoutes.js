@@ -35,7 +35,12 @@ router.post("/", authMiddleware, async (req, res) => {
 
         const { text } = req.body;
 
-        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({message: "Entry cannot be empty"});
+        }
+
+        const trimmedText = text.trim();
+        if (trimmedText.length === 0) {
             return res.status(400).json({message: "Entry cannot be empty"});
         }
 
@@ -44,7 +49,7 @@ router.post("/", authMiddleware, async (req, res) => {
         const newEntry = {
             id: Date.now(),
             userId: req.userId,
-            text: text.trim(),
+            text: trimmedText,
             date: new Date().toISOString()
         };
 
