@@ -12,10 +12,12 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const saved = JSON.parse(localStorage.getItem("loggedUser"));
         if(saved && saved.token) setUser(saved);
+        setLoading(false);
     }, []);
 
     // Login via backend
@@ -27,13 +29,13 @@ export const AuthProvider = ({ children }) => {
                 const userData = {email, token: res.token};
                 setUser(userData);
                 localStorage.setItem("loggedUser", JSON.stringify(userData));
-                return true;
+                return { success: true };
             } else {
-                return false;
+                return { success: false, error: "Invalid credentials" };
             }
         } catch(error) {
             console.error("Login error: ", error);
-            return false;
+            return { success: false, error: error.message };
         }
     };
 
@@ -42,14 +44,14 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await registerUser(email, password);
 
-            // If registration success, then auto login
-            if(res.message === "Register successful") {
+            // Fixed: Check for correct backend message
+            if(res.message === "Registration successful") {
                 return await login(email, password);
             }
-            return false;
+            return { success: false, error: res.message || "Registration failed" };
         } catch(error) {
             console.error("Registration error: ", error);
-            return false;
+            return { success: false, error: error.message };
         }
     };
 
@@ -60,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
