@@ -3,6 +3,11 @@
 # DevJournal AI Frontend-Backend Integration Test Suite
 # Tests the complete user journey: Registration -> Login -> Journal Operations
 # This mirrors exactly what the frontend would do
+#
+# Usage:
+#   ./integration_test.sh           # Run full test suite
+#   ./integration_test.sh --cleanup # Emergency cleanup only
+#   ./integration_test.sh -c        # Emergency cleanup only (short form)
 
 # Colors for professional output
 RED='\033[0;31m'
@@ -48,16 +53,17 @@ make_api_call() {
     local auth_header="$4"
     local test_name="$5"
     
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    # Don't increment TOTAL_TESTS here - let validate_test handle it
+    local current_test_num=$((TOTAL_TESTS + 1))
     
-    echo -e "${CYAN}📡 Test $TOTAL_TESTS: ${test_name}${NC}" >&2
+    echo -e "${CYAN}📡 Test $current_test_num: ${test_name}${NC}" >&2
     echo -e "${PURPLE}   Method: $method | Endpoint: $endpoint${NC}" >&2
     if [ -n "$data" ]; then
         echo -e "${PURPLE}   Data: $data${NC}" >&2
     fi
     
-    # Build curl command
-    local curl_cmd="curl -s -w 'HTTP_STATUS:%{http_code}'"
+    # Build curl command with timeout and retries
+    local curl_cmd="curl -s -w 'HTTP_STATUS:%{http_code}' --max-time 10 --connect-timeout 5"
     
     if [ -n "$auth_header" ]; then
         curl_cmd="$curl_cmd -H 'Authorization: Bearer $auth_header'"
@@ -73,10 +79,32 @@ make_api_call() {
     
     curl_cmd="$curl_cmd -X $method $API_URL$endpoint"
     
-    # Execute API call
-    local response=$(eval $curl_cmd 2>/dev/null)
+    # Execute API call with retry logic
+    local response=""
+    local attempt=1
+    local max_attempts=3
+    
+    while [ $attempt -le $max_attempts ]; do
+        response=$(eval $curl_cmd 2>/dev/null)
+        local exit_code=$?
+        
+        if [ $exit_code -eq 0 ] && [ -n "$response" ]; then
+            break
+        fi
+        
+        echo -e "${YELLOW}   ⚠️ Attempt $attempt failed, retrying...${NC}" >&2
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    
     local http_status=$(echo "$response" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
     local body=$(echo "$response" | sed 's/HTTP_STATUS:[0-9]*$//')
+    
+    # Handle empty responses
+    if [ -z "$http_status" ]; then
+        http_status="000"
+        body="Connection failed or server unresponsive"
+    fi
     
     echo -e "${GRAY}   Response: HTTP $http_status${NC}" >&2
     echo -e "${GRAY}   Body: $body${NC}" >&2
@@ -92,6 +120,9 @@ validate_test() {
     local response_body="$3"
     local test_name="$4"
     local additional_checks="$5"
+    
+    # Increment total tests counter here
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
     
     if [ "$actual_status" = "$expected_status" ]; then
         # Run additional checks if provided
@@ -113,7 +144,59 @@ validate_test() {
     else
         echo -e "${RED}   ❌ FAIL: $test_name${NC}" >&2
         echo -e "${RED}      Expected HTTP $expected_status, got HTTP $actual_status${NC}" >&2
+        if [ "$actual_status" = "000" ]; then
+            echo -e "${YELLOW}      💡 Hint: HTTP 000 indicates server crash or connection failure${NC}" >&2
+        fi
         FAILED_TESTS=$((FAILED_TESTS + 1))
+        return 1
+    fi
+}
+
+# Dedicated data cleanup function with verification
+cleanup_json_data() {
+    local cleanup_type="$1"  # "pre-test" or "post-test"
+    
+    echo -e "${YELLOW}🧹 Data Cleanup ($cleanup_type)${NC}"
+    echo -e "${GRAY}==============================${NC}"
+    
+    # Check if data directory exists
+    if [ ! -d "server/data" ]; then
+        echo -e "${RED}❌ Warning: server/data directory not found!${NC}"
+        echo -e "${YELLOW}💡 Creating data directory...${NC}"
+        mkdir -p server/data
+    fi
+    
+    # Backup existing data if requested
+    if [ "$cleanup_type" = "pre-test" ] && [ -f "server/data/users.json" ] && [ -s "server/data/users.json" ]; then
+        local timestamp=$(date +%Y%m%d_%H%M%S)
+        echo -e "${CYAN}   📦 Backing up existing data to backup_${timestamp}/...${NC}"
+        mkdir -p "backup_${timestamp}"
+        cp server/data/users.json "backup_${timestamp}/users_backup.json" 2>/dev/null || true
+        cp server/data/entries.json "backup_${timestamp}/entries_backup.json" 2>/dev/null || true
+    fi
+    
+    # Clean JSON files
+    echo -e "${GRAY}   Cleaning users.json...${NC}"
+    echo "[]" > server/data/users.json || {
+        echo -e "${RED}❌ Failed to clean users.json${NC}"
+        return 1
+    }
+    
+    echo -e "${GRAY}   Cleaning entries.json...${NC}"
+    echo "[]" > server/data/entries.json || {
+        echo -e "${RED}❌ Failed to clean entries.json${NC}"
+        return 1
+    }
+    
+    # Verify cleanup
+    local users_content=$(cat server/data/users.json 2>/dev/null || echo "error")
+    local entries_content=$(cat server/data/entries.json 2>/dev/null || echo "error")
+    
+    if [ "$users_content" = "[]" ] && [ "$entries_content" = "[]" ]; then
+        echo -e "${GREEN}   ✅ JSON files cleaned successfully${NC}"
+        return 0
+    else
+        echo -e "${RED}   ❌ Cleanup verification failed${NC}"
         return 1
     fi
 }
@@ -132,10 +215,11 @@ setup_test_environment() {
         exit 1
     fi
     
-    # Clean up previous test data
-    echo -e "${GRAY}   Cleaning up previous test data...${NC}"
-    [ -f "server/data/users.json" ] && echo "[]" > server/data/users.json
-    [ -f "server/data/entries.json" ] && echo "[]" > server/data/entries.json
+    # Use dedicated cleanup function
+    if ! cleanup_json_data "pre-test"; then
+        echo -e "${RED}❌ Failed to clean up test data${NC}"
+        exit 1
+    fi
     
     echo -e "${GREEN}✅ Test environment ready${NC}"
     echo
@@ -224,6 +308,11 @@ test_user_authentication() {
     
     validate_test "400" "$status" "$body" "Non-existent User Rejection"
     
+    # Check server health after authentication tests
+    if ! check_server_health "after authentication tests"; then
+        echo -e "${RED}⚠️ Server health check failed, but continuing...${NC}"
+        sleep 2
+    fi
     echo
 }
 
@@ -311,6 +400,11 @@ test_journal_operations() {
     validate_test "200" "$status" "$body" "Verify Deletion" \
         "echo '$body' | grep -o '\"id\":' | wc -l | grep -q '1'"
     
+    # Check server health after journal operations
+    if ! check_server_health "after journal operations"; then
+        echo -e "${RED}⚠️ Server health check failed, but continuing...${NC}"
+        sleep 2
+    fi
     echo
 }
 
@@ -389,35 +483,84 @@ cleanup_test_data_final() {
     echo -e "${YELLOW}🧹 Final Cleanup${NC}"
     echo -e "${GRAY}=================${NC}"
     
-    # Clean up test data
-    echo "[]" > server/data/users.json
-    echo "[]" > server/data/entries.json
+    # Use dedicated cleanup function
+    cleanup_json_data "post-test"
     
-    echo -e "${GREEN}✅ Test data cleaned up${NC}"
+    # Additional cleanup - remove any backup directories older than 24 hours
+    find . -maxdepth 1 -name "backup_*" -type d -mtime +1 -exec rm -rf {} \; 2>/dev/null || true
+    
+    echo -e "${GREEN}✅ Final cleanup completed${NC}"
     echo
 }
+
+# Emergency cleanup function (can be called independently)
+emergency_cleanup() {
+    echo -e "${RED}🚨 Emergency Cleanup Mode${NC}"
+    echo -e "${GRAY}=========================${NC}"
+    
+    cleanup_json_data "emergency"
+    
+    # Remove all backup directories
+    echo -e "${GRAY}   Removing all backup directories...${NC}"
+    rm -rf backup_* 2>/dev/null || true
+    
+    echo -e "${GREEN}✅ Emergency cleanup completed${NC}"
+    exit 0
+}
+
+# Server health check function
+check_server_health() {
+    local context="$1"
+    echo -e "${YELLOW}🔍 Checking server health ($context)...${NC}"
+    
+    local health_response=$(make_api_call "GET" "/health" "" "" "Server Health Check")
+    local status=$(echo "$health_response" | cut -d'|' -f1)
+    
+    if [ "$status" = "404" ] || [ "$status" = "200" ]; then
+        echo -e "${GREEN}   ✅ Server is responsive${NC}"
+        return 0
+    else
+        echo -e "${RED}   ❌ Server appears to be down (HTTP $status)${NC}"
+        echo -e "${YELLOW}   💡 Please restart the server: cd server && npm start${NC}"
+        return 1
+    fi
+}
+
+# Check for emergency cleanup flag
+if [ "$1" = "--cleanup" ] || [ "$1" = "-c" ]; then
+    emergency_cleanup
+fi
 
 # Generate final report
 generate_report() {
     local end_time=$(date +%s)
     local duration=$((end_time - START_TIME))
-    local success_rate=$((PASSED_TESTS * 100 / TOTAL_TESTS))
+    
+    # Prevent division by zero
+    local success_rate=0
+    if [ $TOTAL_TESTS -gt 0 ]; then
+        success_rate=$((PASSED_TESTS * 100 / TOTAL_TESTS))
+    fi
     
     echo -e "${WHITE}========================================${NC}"
     echo -e "${BOLD}📊 Integration Test Report${NC}"
     echo -e "${WHITE}========================================${NC}"
     echo -e "${GREEN}✅ Passed: $PASSED_TESTS tests${NC}"
     echo -e "${RED}❌ Failed: $FAILED_TESTS tests${NC}"
+    echo -e "${GRAY}📊 Total: $TOTAL_TESTS tests${NC}"
     echo -e "${BLUE}📈 Success Rate: $success_rate%${NC}"
     echo -e "${GRAY}⏱️  Duration: ${duration}s${NC}"
     echo -e "${WHITE}========================================${NC}"
     
-    if [ $FAILED_TESTS -eq 0 ]; then
+    if [ $FAILED_TESTS -eq 0 ] && [ $TOTAL_TESTS -gt 0 ]; then
         echo -e "${GREEN}🎉 ALL TESTS PASSED! Frontend-Backend integration is ready!${NC}"
         echo -e "${CYAN}💡 You can now confidently test the frontend UI${NC}"
         return 0
     else
-        echo -e "${RED}⚠️  Some tests failed. Please fix issues before frontend testing.${NC}"
+        echo -e "${RED}⚠️  Some tests failed. Please check server logs and fix issues.${NC}"
+        if [ $TOTAL_TESTS -eq 0 ]; then
+            echo -e "${RED}💡 No tests were executed - check server connection${NC}"
+        fi
         return 1
     fi
 }
