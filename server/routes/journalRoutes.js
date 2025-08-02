@@ -17,7 +17,7 @@ const entriesFile = path.join(__dirname, "../data/entries.json");
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const allEntries = await readJSON(entriesFile);
-        const userEntries = allEntries.filter(entry => entry.userId === req.userId);
+        const userEntries = allEntries.filter(entry => entry.userId === req.user.id);
         userEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
         res.json(userEntries);
     } catch(error) {
@@ -48,7 +48,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
         const newEntry = {
             id: Date.now(),
-            userId: req.userId,
+            userId: req.user.id,
             text: trimmedText,
             date: new Date().toISOString()
         };
@@ -58,6 +58,52 @@ router.post("/", authMiddleware, async (req, res) => {
         res.status(201).json(newEntry);
     } catch(error) {
         console.error("POST /journal error:", error);
+        res.status(500).json({message: "Server error", error: error.message});
+    }
+});
+
+// PUT /journal/:id
+router.put("/:id", authMiddleware, async (req, res) => {
+    try {
+        const entryId = parseInt(req.params.id);
+        
+        if (isNaN(entryId)) {
+            return res.status(400).json({message: "Invalid entry ID"});
+        }
+
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({message: "Invalid request body"});
+        }
+
+        const { text } = req.body;
+
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({message: "Entry text is required"});
+        }
+
+        const trimmedText = text.trim();
+        if (trimmedText.length === 0) {
+            return res.status(400).json({message: "Entry cannot be empty"});
+        }
+
+        const allEntries = await readJSON(entriesFile);
+        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.user.id);
+
+        if (index === -1) {
+            return res.status(404).json({message: "Entry not found or unauthorized"});
+        }
+
+        // Update the entry
+        allEntries[index] = {
+            ...allEntries[index],
+            text: trimmedText,
+            date: new Date().toISOString() // Update timestamp
+        };
+
+        await writeJSON(entriesFile, allEntries);
+        res.json(allEntries[index]);
+    } catch(error) {
+        console.error("PUT /journal/:id error:", error);
         res.status(500).json({message: "Server error", error: error.message});
     }
 });
@@ -72,7 +118,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         }
 
         const allEntries = await readJSON(entriesFile);
-        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.userId);
+        const index = allEntries.findIndex(entry => entry.id === entryId && entry.userId === req.user.id);
 
         if(index === -1) {
             return res.status(404).json({message: "Entry not found or unathorized"});

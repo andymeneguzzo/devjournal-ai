@@ -240,6 +240,7 @@ test_user_registration() {
     
     validate_test "201" "$status" "$body" "User Registration" \
         "echo '$body' | grep -q 'Registration successful'"
+    sleep 5
     
     # Test 1.2: Duplicate Registration (Should Fail)
     local response=$(make_api_call "POST" "/auth/register" \
@@ -251,6 +252,7 @@ test_user_registration() {
     
     validate_test "400" "$status" "$body" "Duplicate Registration Prevention" \
         "echo '$body' | grep -q 'User already exists'"
+    sleep 5
     
     # Test 1.3: Invalid Email Format
     local response=$(make_api_call "POST" "/auth/register" \
@@ -261,6 +263,7 @@ test_user_registration() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "400" "$status" "$body" "Invalid Email Validation"
+    sleep 5
     
     echo
 }
@@ -287,6 +290,7 @@ test_user_authentication() {
         echo -e "${RED}❌ Cannot proceed without valid token${NC}"
         exit 1
     fi
+    sleep 5
     
     # Test 2.2: Wrong Password
     local response=$(make_api_call "POST" "/auth/login" \
@@ -297,6 +301,7 @@ test_user_authentication() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "400" "$status" "$body" "Wrong Password Rejection"
+    sleep 5
     
     # Test 2.3: Non-existent User
     local response=$(make_api_call "POST" "/auth/login" \
@@ -307,6 +312,7 @@ test_user_authentication() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "400" "$status" "$body" "Non-existent User Rejection"
+    sleep 5
     
     # Check server health after authentication tests
     if ! check_server_health "after authentication tests"; then
@@ -328,6 +334,7 @@ test_journal_operations() {
     
     validate_test "200" "$status" "$body" "Get Empty Journal" \
         "echo '$body' | grep -q '\[\]'"
+    sleep 5
     
     # Test 3.2: Create First Journal Entry
     local response=$(make_api_call "POST" "/journal" \
@@ -344,6 +351,7 @@ test_journal_operations() {
         ENTRY_IDS+=("$entry_id")
         echo -e "${GREEN}   📝 Entry ID extracted: $entry_id${NC}" >&2
     fi
+    sleep 5
     
     # Test 3.3: Create Second Journal Entry
     local response=$(make_api_call "POST" "/journal" \
@@ -357,6 +365,7 @@ test_journal_operations() {
         local entry_id=$(echo "$body" | grep -o '"id":[0-9]*' | cut -d':' -f2)
         ENTRY_IDS+=("$entry_id")
     fi
+    sleep 5
     
     # Test 3.4: Get All Entries (Should have 2)
     local response=$(make_api_call "GET" "/journal" "" "$USER_TOKEN" "Get All Entries")
@@ -365,6 +374,7 @@ test_journal_operations() {
     
     validate_test "200" "$status" "$body" "Get All Entries" \
         "echo '$body' | grep -o '\"id\":' | wc -l | grep -q '2'"
+    sleep 5
     
     # Test 3.5: Update First Entry
     if [ ${#ENTRY_IDS[@]} -gt 0 ]; then
@@ -378,6 +388,7 @@ test_journal_operations() {
         
         validate_test "200" "$status" "$body" "Update First Entry" \
             "echo '$body' | grep -q 'Updated first entry'"
+        sleep 5
     fi
     
     # Test 3.6: Delete Second Entry
@@ -390,6 +401,7 @@ test_journal_operations() {
         local body=$(echo "$response" | cut -d'|' -f2)
         
         validate_test "200" "$status" "$body" "Delete Second Entry"
+        sleep 5
     fi
     
     # Test 3.7: Verify Deletion (Should have 1 entry)
@@ -399,6 +411,7 @@ test_journal_operations() {
     
     validate_test "200" "$status" "$body" "Verify Deletion" \
         "echo '$body' | grep -o '\"id\":' | wc -l | grep -q '1'"
+    sleep 5
     
     # Check server health after journal operations
     if ! check_server_health "after journal operations"; then
@@ -419,6 +432,7 @@ test_authorization() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "401" "$status" "$body" "Unauthorized Access"
+    sleep 5
     
     # Test 4.2: Invalid Token
     local response=$(make_api_call "GET" "/journal" "" "invalid.token.here" "Invalid Token")
@@ -426,6 +440,7 @@ test_authorization() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "403" "$status" "$body" "Invalid Token"
+    sleep 5
     
     # Test 4.3: Empty Text Entry (Should Fail)
     local response=$(make_api_call "POST" "/journal" \
@@ -436,6 +451,7 @@ test_authorization() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "400" "$status" "$body" "Empty Text Validation"
+    sleep 5
     
     echo
 }
@@ -454,6 +470,7 @@ test_edge_cases() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "404" "$status" "$body" "Non-existent Entry Update"
+    sleep 5
     
     # Test 5.2: Non-existent Entry Deletion
     local response=$(make_api_call "DELETE" "/journal/999999" \
@@ -463,6 +480,7 @@ test_edge_cases() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "404" "$status" "$body" "Non-existent Entry Deletion"
+    sleep 5
     
     # Test 5.3: Very Long Text Entry
     local long_text=$(printf 'A%.0s' {1..1000})
@@ -474,6 +492,7 @@ test_edge_cases() {
     local body=$(echo "$response" | cut -d'|' -f2)
     
     validate_test "201" "$status" "$body" "Long Text Entry"
+    sleep 5
     
     echo
 }
