@@ -31,46 +31,68 @@ export default function Journal() {
         setText("");
     }
 
-    if (!user) return <div className="text-center p-10 text-red-500 font-bold">Unauthorized access</div>;
-
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
-        <h1 className="text-3xl font-bold mb-6 text-center">Hi, {user.email}</h1>
-
-        <form onSubmit={handleSubmit} className="mb-6">
-          <textarea
-            className="w-full border rounded p-3 mb-3 focus:ring-2 focus:ring-green-400 outline-none"
-            rows={4}
-            placeholder="Write your diary..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <button
-            className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-            disabled={!text.trim()}
-          >
-            Save Entry
-          </button>
-        </form>
-
-        <div className="space-y-4">
-          {entries.length === 0 && (
-            <p className="text-gray-500 text-center">No entries yet. Start writing your first one!</p>
-          )}
-          {entries.map((e) => (
-            <div
-              key={e.id}
-              className="bg-gray-50 p-4 rounded shadow hover:shadow-md transition-shadow"
-            >
-              <p className="mb-2">{e.text}</p>
-              <span className="text-sm text-gray-500">
-                {new Date(e.date).toLocaleString()}
-              </span>
+    if (!user) return (
+        <div className="page-container">
+            <div className="content-container">
+                <div className="card card-body text-center">
+                    <div className="text-error font-semibold">Unauthorized access</div>
+                </div>
             </div>
-          ))}
         </div>
-      </div>
-    </div>
-  );
+    );
+
+    return (
+        <div className="page-container">
+            <div className="content-container-lg animate-slide-up">
+                <div className="card card-body">
+                    <h1 className="text-display-md text-center">
+                        Hi, <span className="gradient-text">{user.email}</span>
+                    </h1>
+
+                    <form onSubmit={handleSubmit} className="space-y-lg">
+                        <div className="form-group">
+                            <label className="form-label">What's on your mind today?</label>
+                            <textarea
+                                className="form-input form-textarea"
+                                rows={4}
+                                placeholder="Write your thoughts, feelings, or experiences..."
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                            />
+                        </div>
+                        
+                        <button
+                            className="btn btn-primary btn-full btn-lg"
+                            disabled={!text.trim()}
+                        >
+                            Save Entry
+                        </button>
+                    </form>
+
+                    <div className="space-y-lg">
+                        <h2 className="text-display-sm">Your Journal Entries</h2>
+                        
+                        <div className="space-y-md animate-stagger">
+                            {entries.length === 0 && (
+                                <div className="card-entry text-center">
+                                    <p className="text-muted">No entries yet. Start writing your first one!</p>
+                                </div>
+                            )}
+                            {entries.map((e) => (
+                                <div
+                                    key={e.id}
+                                    className="card-entry animate-fade-in"
+                                >
+                                    <p className="text-body">{e.text}</p>
+                                    <div className="text-body-sm text-muted">
+                                        {new Date(e.date).toLocaleString()}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -5,47 +5,50 @@ export default function Home() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4 bg-[var(--color-bg)]">
-      <div className="text-center w-full max-w-md">
-        <h1 className="text-4xl font-bold mb-3">AI Journal</h1>
-        <p className="text-lg mb-8">
-          Write your thoughts and let AI help you reflect, grow, and improve every day.
-        </p>
+    <div className="page-container-with-navbar">
+      <div className="content-container animate-slide-up">
+        <div className="card card-body text-center">
+          <h1 className="text-display-lg gradient-text">AI Journal</h1>
+          <p className="text-body-lg">
+            Write your thoughts and let AI help you reflect, grow, and improve every day.
+          </p>
 
-        {user ? (
-          <div>
-            <p className="text-lg mb-4">
-              Welcome back, <span className="font-semibold">{user.email}</span>!
-            </p>
-            <Link
-              to="/journal"
-              className="btn btn-login block w-full mb-3 text-center"
-            >
-              Go to your Journal
-            </Link>
-            <button
-              onClick={logout}
-              className="btn btn-register w-full"
-            >
-              Logout
-            </button>
-          </div>
-        ) : (
-          <div className="flex justify-center gap-4">
-            <Link
-              to="/login"
-              className="btn btn-login"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="btn btn-register"
-            >
-              Register
-            </Link>
-          </div>
-        )}
+          {user ? (
+            <div className="space-y-lg">
+              <div className="text-body">
+                Ready to continue your journey?
+              </div>
+              <div className="space-y-md">
+                <Link
+                  to="/journal"
+                  className="btn btn-primary btn-full btn-lg"
+                >
+                  Open Journal
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-md">
+              <div className="text-body">
+                Start your personal growth journey today
+              </div>
+              <div className="space-x-md flex justify-center">
+                <Link
+                  to="/login"
+                  className="btn btn-ghost"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn btn-primary"
+                >
+                  Get Started
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
